@@ -6,7 +6,7 @@ from params import FragmentSpectraParams
 
 
 def convert_df(df_to_download):
-    return df_to_download.to_csv(index=False).encode('ascii')
+    return df_to_download[['ion','mz','intensity']].to_csv(index=False).encode('ascii')
 
 
 def get_color_from_annotation(annot):
@@ -95,6 +95,32 @@ def get_fragment_ions_df(peptide, charge, fragment_spectra_params):
         data.append({'ion': an.decode(), 'mz': mz, 'intensity': intensity,
                      'color': get_color_from_annotation(an.decode())})
     df = pd.DataFrame(data).sort_values(by=['mz'])
+    df.ion = [ion_str.replace("[M+H]-H2O", f"b{len(peptide)}") for ion_str in df.ion]
+    df.ion = [ion_str.replace("[M+H]-NH3", f"y{len(peptide)}") for ion_str in df.ion]
+    df.ion = [ion_str.replace("[M+H]", "[M&H]") for ion_str in df.ion]
+    charges = [ion_str.count("+") for ion_str in df.ion]
+
+    ion_type = [ion_str[0] for ion_str in df.ion]
+    ion_type = list(map(lambda x: x.replace('[', 'Precursor'), ion_type))
+    h20_loss = ["H2O" in ion_str for ion_str in df.ion]
+    h3n_loss = ["H3N" in ion_str for ion_str in df.ion]
+    ion_nums = []
+    for ion_str in df.ion:
+        s = ion_str[1:]
+        s = s.split("-")[0]
+        s = s.replace("+", "")
+        if ion_str[0] == 'i' or ion_str[0] == '[':
+            s = 0
+        else:
+            s = int(s)
+        ion_nums.append(int(s))
+
+    df['ion_num'] = ion_nums
+    df['h2o_loss'] = h20_loss
+    df['h3n_loss'] = h3n_loss
+    df['ion_type'] = ion_type
+    df['charge'] = charges
+    df['ion_tag'] = [f"{ion_str}{'-H20' if h20_loss else ''}{'-H20' if h3n_loss else ''}" for ion_str, h20_loss, h3n_loss in zip(df.ion_type, df.h2o_loss, df.h3n_loss)]
     return df
 
 
@@ -111,3 +137,4 @@ def get_fragment_spectra_plot(peptide, charge, fragment_spectra_params):
     )
     fig = go.Figure(data, layout)
     return fig
+
