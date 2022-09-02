@@ -9,7 +9,7 @@ seq_col, charge_col = st.columns(2)
 with seq_col:
     peptide = st.text_input('Peptide Sequence', 'PEPTIDE')
 with charge_col:
-    charge = st.number_input('Charge:', min_value=0, max_value=1000, value=1,
+    charge = st.number_input('Charge:', min_value=1, max_value=10, value=1,
                              help="peptide charge state to use for fragmentation")
 
 fragment_spectra_params = get_fragment_spectra_params()
